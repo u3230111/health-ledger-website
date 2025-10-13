@@ -42,7 +42,7 @@ function displayResults(results) {
       }
 
       // 1. Create a container for the item
-      const itemContainer = document.createElement("div");
+            const itemContainer = document.createElement("div");
 
       // 2. Use template literals to embed the item details in HTML
       itemContainer.innerHTML = `
