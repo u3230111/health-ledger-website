@@ -1,16 +1,73 @@
+// Function to get user's location and fetch data based on city or suburb
+function getLocationAndFetchData() {
+  if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+          (position) => {
+              const lat = position.coords.latitude;
+              const lon = position.coords.longitude;
+              console.log(`user: ${lat}, ${lon}`);
+
+              // Call function to convert lat/lon to city/suburb
+              getCityFromCoordinates(lat, lon);
+          },
+          (error) => {
+              console.error("Geolocation error:", error);
+              document.getElementById("objectsContainer").innerHTML = `<p>Could not retrieve location. Showing default results.</p>`;
+
+              // Fallback: Use a general query if geolocation fails
+              getData("https://api.collection.nfsa.gov.au/search?query=dog");
+          }
+      );
+  } else {
+      console.log("Geolocation not supported in this browser.");
+      document.getElementById("objectsContainer").innerHTML = `<p>Geolocation is not supported. Showing default results.</p>`;
+
+      // Fetch default data
+      getData("https://api.collection.nfsa.gov.au/search?query=dog");
+  }
+}
+
+// Function to convert lat/lon into a city or suburb using OpenStreetMap's Nominatim API
+function getCityFromCoordinates(lat, lon) {
+  const geoApiUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`;
+
+  fetch(geoApiUrl)
+      .then(response => response.json())
+      .then(data => {
+          console.log("Geocoding API Response:", data);
+
+          // Extract city or suburb from response
+          let locationName = data.address.suburb;
+
+          if (locationName) {
+              console.log(`Detected Location: ${locationName}`);
+              searchByLocation(locationName);
+          } else {
+              console.log("No city/suburb found, using default search.");
+              getData("https://api.collection.nfsa.gov.au/search?query=dog");
+          }
+      })
+      .catch(error => {
+          console.error("Error retrieving location:", error);
+          getData("https://api.collection.nfsa.gov.au/search?query=dog");
+      });
+}
+
+// Function to search NFSA API using city/suburb name
+function searchByLocation(location) {
+  const queryUrl = `https://api.collection.nfsa.gov.au/search?query=${encodeURIComponent(location)}`;
+  console.log(`Searching NFSA API for: ${location}`);
+
+  getData(queryUrl);
+}
+
 // Function to fetch data from NFSA API
 async function getData(url) {
   try {
-      // Fetch data from NFSA API
       const response = await fetch(url);
-
-      // Convert response to JSON
       const data = await response.json();
 
-      // Log the full response to inspect structure
       console.log("Full API Response:", data);
-
-      // Call function to display results
       displayResults(data.results);
   } catch (error) {
       console.error("Error fetching data:", error);
@@ -20,7 +77,8 @@ async function getData(url) {
 
 // Function to display API results
 function displayResults(results) {
-  const objectsContainer = document.getElementById("objectsContainer"); // Ensure this exists in HTML
+  const objectsContainer = document.getElementById("objectsContainer");
+  objectsContainer.innerHTML = ""; // Clear previous results
 
   results.forEach(item => {
       console.log("Item:", item); // Step to log each item
@@ -42,7 +100,7 @@ function displayResults(results) {
       }
 
       // 1. Create a container for the item
-            const itemContainer = document.createElement("div");
+      const itemContainer = document.createElement("div");
 
       // 2. Use template literals to embed the item details in HTML
       itemContainer.innerHTML = `
@@ -56,5 +114,5 @@ function displayResults(results) {
   });
 }
 
-// Call getData with NFSA API URL
-getData("https://api.collection.nfsa.gov.au/search?query=dog");
+// Call function to get user location and fetch API data
+getLocationAndFetchData();
